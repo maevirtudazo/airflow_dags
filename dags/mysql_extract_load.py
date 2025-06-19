@@ -9,6 +9,24 @@ default_args = {
     'retry_delay': timedelta(minutes=2),
 }
 
+def extract_transactions(**context):
+    hook = MySQlHook(mysql_conn_id='devopssourcedb')
+    conn = hook.get_conn()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, amount, customer_id, status, created_at FROM transactions")
+    rows = cursor.fetchall()
+    context['ti'].xcom_push(key='transaction_data', value=rows)
+
+def load_transaction_mysql_dest(**context):
+    data = context['ti'].xcom_pull(task_ids='extract_transactions', key='transaction_data')
+    hook = MySqlHook(mysql_conn_id='devopsdestdb')
+    conn= hook.get_conn()
+    cursor = conn.cursor()
+    cursor.execute('TRUNCATE TABLE transactions')
+    for row in data:
+        cursor.execute("INSERT INTO transactions (customer_id, amount, status) VALUES (%s, %s, %s)", row)
+    conn.commit()
+
 with DAG(
     dag_id='mysql_etl',
     default_args=default_args,
@@ -33,20 +51,4 @@ with DAG(
     
     extract_transaction_mysql_source >> load_transaction_mysql_dest
 
-def extract_transactions(**context):
-    hook = MySQlHook(mysql_conn_id='devopssourcedb')
-    conn = hook.get_conn()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, amount, customer_id, status, created_at FROM transactions")
-    rows = cursor.fetchall()
-    context['ti'].xcom_push(key='transaction_data', value=rows)
 
-def load_transaction_mysql_dest(**context):
-    data = context['ti'].xcom_pull(task_ids='extract_transactions', key='transaction_data')
-    hook = MySqlHook(mysql_conn_id='devopsdestdb')
-    conn= hook.get_conn()
-    cursor = conn.cursor()
-    cursor.execute('TRUNCATE TABLE transactions')
-    for row in data:
-        cursor.execute("INSERT INTO transactions (customer_id, amount, status) VALUES (%s, %s, %s)", row)
-    conn.commit()
