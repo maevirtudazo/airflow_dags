@@ -20,17 +20,18 @@ with DAG(
 
 ) as dag:
 
-extract_transaction_mysql_source = PythonOperator(
-    task_id='extract_transactions',
-    python_callable=extract_transactions,
-    provide_context=True
-)
-load_transaction_mysql_dest = PythonOperator (
-    task_id='load_transactions',
-    python_callable=load_transactions,
-    provide_context=True
-)
-extract_transaction_mysql_source >> load_transaction_mysql_dest
+    extract_transaction_mysql_source = PythonOperator(
+        task_id='extract_transactions',
+        python_callable=extract_transactions,
+        provide_context=True
+    )
+    load_transaction_mysql_dest = PythonOperator (
+        task_id='load_transactions',
+        python_callable=load_transactions,
+        provide_context=True
+    )
+    
+    extract_transaction_mysql_source >> load_transaction_mysql_dest
 
 def extract_transactions(**context):
     hook = MySQlHook(mysql_conn_id='devopssourcedb')
