@@ -17,7 +17,7 @@ def extract_transactions(**context):
     rows = cursor.fetchall()
     context['ti'].xcom_push(key='transaction_data', value=rows)
 
-def load_transaction_mysql_dest(**context):
+def load_transactions(**context):
     data = context['ti'].xcom_pull(task_ids='extract_transactions', key='transaction_data')
     hook = MySqlHook(mysql_conn_id='devopsdestdb')
     conn= hook.get_conn()
